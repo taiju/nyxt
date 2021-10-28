@@ -28,18 +28,39 @@
       (setf (ps:@ element text-content) hint)
       element))
 
+  (defun hint-element (fragment element hint)
+    (ps:chain element (set-attribute "nyxt-hint" hint))
+    (ps:let ((hint-element (hint-create-element element hint)))
+      (ps:chain fragment (append-child hint-element))))
+
+  (defun hint-unreachable-element (fragment element identifier hint)
+    (if (and (ps:chain element (has-attribute "nyxt-identifier"))
+             (equal (ps:chain element (get-attribute "nyxt-identifier"))
+                    identifier))
+        (hint-element fragment element hint)
+        (progn
+          (unless (or (ps:undefined attributes)
+                      (= 0 (ps:@ attributes length)))
+            (loop for child in (ps:@ element child-nodes)
+                  do (hint-unreachable-element fragment child identifier hint)))
+          (when (and (ps:chain element shadow-root)
+                     (/= 0 (ps:@ element shadow-root child-nodes length)))
+            (loop for child in (ps:@ element shadow-root child-nodes)
+                  do (hint-unreachable-element fragment child identifier hint))))))
+
   (let ((fragment (ps:chain document (create-document-fragment)))
         (ids (ps:lisp (list 'quote nyxt-identifiers)))
         (hints (ps:lisp (list 'quote hints))))
     (dotimes (i (ps:lisp (length nyxt-identifiers)))
-      (let ((element (nyxt/ps:qs document (+ "[nyxt-identifier=\""
-                                             (aref ids i)
-                                             "\"]")))
-            (hint (aref hints i)))
-        (when element
-          (ps:chain element (set-attribute "nyxt-hint" hint))
-          (ps:let ((hint-element (hint-create-element element hint)))
-            (ps:chain fragment (append-child hint-element))))))
+      (let* ((hint (aref hints i))
+             (id (aref ids i))
+             (element (nyxt/ps:qs document (+ "[nyxt-identifier=\"" id "\"]"))))
+        (if element
+            (hint-element fragment element hint)
+            (hint-unreachable-element fragment
+                                      (nyxt/ps:qs document "html")
+                                      (aref ids i)
+                                      hint))))
     (ps:chain document body (append-child fragment))
     ;; Returning fragment makes WebKit choke.
     nil))
