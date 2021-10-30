@@ -4,16 +4,21 @@
 (in-package :nyxt/web-mode)
 
 (define-parenscript add-stylesheet ()
-  (unless (nyxt/ps:qs document "#nyxt-stylesheet")
-    (ps:try
-     (ps:let* ((style-element (ps:chain document (create-element "style")))
-               (box-style (ps:lisp (box-style (current-mode 'web))))
-               (highlighted-style (ps:lisp (highlighted-box-style (current-mode 'web)))))
-       (setf (ps:@ style-element id) "nyxt-stylesheet")
-       (ps:chain document head (append-child style-element))
-       (ps:chain style-element sheet (insert-rule box-style 0))
-       (ps:chain style-element sheet (insert-rule highlighted-style 1)))
-     (:catch (error)))))
+  (defun add-style (element insertion-element)
+    (unless (nyxt/ps:qs element "#nyxt-stylesheet")
+      (ps:try
+       (ps:let* ((style-element (ps:chain element (create-element "style")))
+                 (box-style (ps:lisp (box-style (current-mode 'web))))
+                 (highlighted-style (ps:lisp (highlighted-box-style (current-mode 'web)))))
+         (setf (ps:@ style-element id) "nyxt-stylesheet")
+         (ps:chain insertion-element (append-child style-element))
+         (ps:chain style-element sheet (insert-rule box-style 0))
+         (ps:chain style-element sheet (insert-rule highlighted-style 1)))
+       (:catch (error)))))
+
+  (add-style document (ps:@ document head))
+  (dolist (root (nyxt/ps:all-shadow-roots))
+    (add-style root root)))
 
 (define-parenscript hint-elements (nyxt-identifiers hints)
   (defun hint-create-element (original-element hint)
@@ -28,25 +33,23 @@
       (setf (ps:@ element text-content) hint)
       element))
 
-  (defun hint-element (fragment element hint)
+  (defun hint-element (fragment element hint shadow-root)
     (ps:chain element (set-attribute "nyxt-hint" hint))
-    (ps:let ((hint-element (hint-create-element element hint)))
-      (ps:chain fragment (append-child hint-element))))
+    (ps:let ((hint-element (hint-create-element element hint shadow-root)))
+      (if shadow-root
+          (ps:chain shadow-root (append-child hint-element))
+          (ps:chain fragment (append-child hint-element)))))
 
   (defun hint-unreachable-element (fragment element identifier hint)
-    (if (and (ps:chain element (has-attribute "nyxt-identifier"))
-             (equal (ps:chain element (get-attribute "nyxt-identifier"))
-                    identifier))
-        (hint-element fragment element hint)
-        (progn
-          (unless (or (ps:undefined attributes)
-                      (= 0 (ps:@ attributes length)))
-            (loop for child in (ps:@ element child-nodes)
-                  do (hint-unreachable-element fragment child identifier hint)))
-          (when (and (ps:chain element shadow-root)
-                     (/= 0 (ps:@ element shadow-root child-nodes length)))
-            (loop for child in (ps:@ element shadow-root child-nodes)
-                  do (hint-unreachable-element fragment child identifier hint))))))
+    (let ((roots (nyxt/ps:all-shadow-roots)))
+      (ps:chain console (log (+ "there are " (ps:@ roots length) " roots")))
+      (dolist (root roots)
+        (let ((shadow-elem (nyxt/ps:qs
+                            root (+ "[nyxt-identifier=\"" identifier "\"]"))))
+          (when (and shadow-elem
+                     (not (ps:undefined shadow-elem)))
+            (ps:chain console (log "got shadow element"))
+            (return (hint-element fragment shadow-elem hint root)))))))
 
   (let ((fragment (ps:chain document (create-document-fragment)))
         (ids (ps:lisp (list 'quote nyxt-identifiers)))
@@ -56,7 +59,7 @@
              (id (aref ids i))
              (element (nyxt/ps:qs document (+ "[nyxt-identifier=\"" id "\"]"))))
         (if element
-            (hint-element fragment element hint)
+            (hint-element fragment element hint nil)
             (hint-unreachable-element fragment
                                       (nyxt/ps:qs document "html")
                                       (aref ids i)
@@ -96,11 +99,13 @@
           collect elem)))
 
 (define-parenscript remove-element-hints ()
-  (defun hints-remove-all ()
+  (defun hints-remove-all (context)
     "Removes all the elements"
-    (ps:dolist (element (nyxt/ps:qsa document ".nyxt-hint"))
+    (ps:dolist (element (nyxt/ps:qsa context ".nyxt-hint"))
       (ps:chain element (remove))))
-  (hints-remove-all))
+  (hints-remove-all document)
+  (dolist (root (nyxt/ps:all-shadow-roots))
+    (hints-remove-all root)))
 
 (define-parenscript highlight-selected-hint (&key element scroll)
   (defun update-hints ()
