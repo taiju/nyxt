@@ -27,7 +27,7 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ~/.roswell
-        key: ${{ runner.os }}-dot-roswell-${{ matrix.lisp }}-${{ hashFiles('**/*.asd') }}
+        key: ${{ runner.os }}-dot-roswell-${{ matrix.lisp }}-${{ hashFiles('**/*.asd') }}-${{ hashFiles('**/*.yml') }}
         restore-keys: |
           ${{ runner.os }}-dot-roswell-${{ matrix.lisp }}-
           ${{ runner.os }}-dot-roswell-
