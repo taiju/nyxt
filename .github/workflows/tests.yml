@@ -29,8 +29,8 @@ jobs:
         path: ~/.roswell
         key: ${{ runner.os }}-dot-roswell-${{ matrix.lisp }}-${{ hashFiles('**/*.asd') }}-${{ hashFiles('**/*.yml') }}
         restore-keys: |
-          ${{ runner.os }}-dot-roswell-${{ matrix.lisp }}-
-          ${{ runner.os }}-dot-roswell-
+          ${{ runner.os }}-dot-roswell-${{ matrix.lisp }}-v2-
+          ${{ runner.os }}-dot-roswell-v2-
 
     - name: Install dependencies
       shell: bash
