@@ -61,7 +61,7 @@ jobs:
 
     - name: Echo defclass-star location
       shell: bash
-      run: ros -e '(asdf:locate-system :hu.dwim.defclass-star)'
+      run: ros -e '(format t "DEFCLASS-STAR ~a~%" (nth-value 2 (asdf:locate-system :hu.dwim.defclass-star)))'
 
     - name: Load system and run tests
       shell: bash
