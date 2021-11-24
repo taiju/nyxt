@@ -59,6 +59,10 @@ jobs:
       run: |
         ros -e '(asdf:load-system :nyxt/submodules)'
 
+    - name: Echo defclass-star location
+      shell: bash
+      run: ros -e '(asdf:locate-system :hu.dwim.defclass-star)'
+
     - name: Load system and run tests
       shell: bash
       # Export CI to tell ASDF to quit on test errors.
