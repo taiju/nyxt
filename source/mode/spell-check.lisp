@@ -75,7 +75,7 @@ suggestions."
       (or result
           (enchant:dict-suggest lang word)))))
 
-(define-command spellcheck-text-input (&key text)
+(define-command spell-check-text-input (&key text)
   "Spell check full text input provided by the user."
   (let ((selected-text (prompt :input text
                                :prompt "Suggest spelling"
