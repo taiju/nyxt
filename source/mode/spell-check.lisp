@@ -91,6 +91,6 @@ suggestions."
    (prompter:filter-preprocessor
     (lambda (preprocessed-suggestions text input)
       (declare (ignore preprocessed-suggestions))
-      (when (>= (length input) (minimum-search-length text))
+      (when (>= (length input) (slot-value text 'minimum-search-length))
         (enchant:with-dict (lang (spell-check-language *browser*))
           (mapcar #'spell-check-and-suggest (str:words input))))))))
