@@ -647,7 +647,8 @@ See `asdf::*immutable-systems*'."
                              #'uiop:emptyp
                              (uiop:split-string
                               (uiop:run-program
-                               `(,pkg-config "gobject-2.0" "webkit2gtk-4.0" "--cflags")
+                               `(,pkg-config "gobject-2.0" "webkit2gtk-4.0" "--cflags"
+                                 "--maximum-traverse-depth" "2")
                                :output '(:string :stripped t)
                                :error-output :output
                                :force-shell t
